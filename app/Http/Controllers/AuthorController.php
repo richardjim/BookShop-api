@@ -6,20 +6,55 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator; // Add this line for importing Validator class
+
 
 class AuthorController extends Controller
 {
     public function login(Request $request)
     {
+        $rules = [
+            'username' => 'required',
+            'password' => 'required',
+        ];
+
+        $messages = [
+            'username.required' => 'The username field is required.',
+            'password.required' => 'The password field is required.',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $messages);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()->first()], 422);
+        }
+
         $credentials = $request->only('username', 'password');
 
         if (Auth::attempt($credentials)) {
             $user = Auth::user();
+            $userDetails = [
+                'id' => $user->id,
+                'first_name' => $user->first_name,
+                'last_name' => $user->last_name,
+                'username' => $user->username,
+                'email' => $user->email,
+                'role' => $user->role,
+            ];
+
+            // Generate the token
             $token = $user->createToken('AuthToken')->accessToken;
 
-            return response()->json(['token' => $token]);
+            // Return response with token and user details
+            return response()->json([
+                'token' => $token,
+                'user' => $userDetails
+            ], 201);
         }
 
+
+
+        // Authentication failed
         return response()->json(['error' => 'Unauthorized'], 401);
     }
 
@@ -36,15 +71,32 @@ class AuthorController extends Controller
         $user = User::create([
             'first_name' => $validatedData['first_name'],
             'last_name' => $validatedData['last_name'],
+            'username' => $validatedData['username'],
             'role' => 'member',
             'email' => $validatedData['email'],
             'password' => Hash::make($validatedData['password']),
         ]);
 
+        // Retrieve the user details
+        $userDetails = [
+            'id' => $user->id,
+            'first_name' => $user->first_name,
+            'last_name' => $user->last_name,
+            'username' => $user->username,
+            'email' => $user->email,
+            'role' => $user->role,
+        ];
+
+        // Generate the token
         $token = $user->createToken('AuthToken')->accessToken;
 
-        return response()->json(['token' => $token], 201);
+        // Return response with token and user details
+        return response()->json([
+            'token' => $token,
+            'user' => $userDetails
+        ], 201);
     }
+
 
     public function update(Request $request, $id)
     {
@@ -88,11 +140,11 @@ class AuthorController extends Controller
     public function show($id)
     {
         $user = User::find($id);
-    
+
         if (!$user) {
             return response()->json(['error' => 'User not found'], 404);
         }
-    
+
         return response()->json($user);
     }
-    }
+}

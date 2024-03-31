@@ -16,12 +16,18 @@ use App\Http\Controllers\BookController;
 |
 */
 
-Route::post('/login', [AuthorController::class, 'login']);
-Route::post('/register', [AuthorController::class, 'register']);
 
-Route::middleware('auth:api')->group(function () {
-    Route::get('/user/{id}', [AuthorController::class, 'show']);
-    Route::put('/user/{id}', [AuthorController::class, 'update']);
 
-    Route::apiResource('/books', BookController::class);
+Route::group(['middleware' => ['cors', 'json.response']], function () {
+    Route::post('/login', [AuthorController::class, 'login']);
+    Route::post('/register', [AuthorController::class, 'register']);
+    
+    Route::middleware('auth:api')->group(function () {
+        Route::get('/user/{id}', [AuthorController::class, 'show']);
+        Route::put('/user/{id}', [AuthorController::class, 'update']);
+    
+        Route::apiResource('/books', BookController::class);
+    });
 });
+
+
